@@ -53,29 +53,40 @@
       </div>
     </div>
     <transition :name="transition">
-      <ul ref="dropdownMenu" v-if="dropdownOpen" :id="`vs${uid}__listbox`" :key="`vs${uid}__listbox`" class="vs__dropdown-menu" role="listbox" @mousedown.prevent="onMousedown" @mouseup="onMouseUp" v-append-to-body>
-        <slot name="list-header" v-bind="scope.listHeader" />
-        <li
-          role="option"
-          v-for="(option, index) in filteredOptions"
-          :key="getOptionKey(option)"
-          :id="`vs${uid}__option-${index}`"
-          class="vs__dropdown-option"
-          :class="{ 'vs__dropdown-option--selected': isOptionSelected(option), 'vs__dropdown-option--highlight': index === typeAheadPointer, 'vs__dropdown-option--disabled': !selectable(option) }"
-          :aria-selected="index === typeAheadPointer ? true : null"
-          @mouseover="selectable(option) ? typeAheadPointer = index : null"
-          @mousedown.prevent.stop="selectable(option) ? select(option) : null"
-        >
-          <slot name="option" v-bind="normalizeOptionForSlot(option)">
-            {{ getOptionLabel(option) }}
+      <template v-if="$scopedSlots['dropdown-menu']">
+        <div ref="dropdownMenu" v-if="dropdownOpen" :id="`vs${uid}__listbox`" :class="dropdownClass" :key="`vs${uid}__listbox`" @mousedown.prevent="onMousedown" @mouseup="onMouseUp" :style="{zIndex}" v-append-to-body>
+          <slot
+            name="dropdown-menu"
+            v-bind="generateContextForDropdownMenuSlot()">
+            <div></div>
           </slot>
-        </li>
-        <li v-if="filteredOptions.length === 0" class="vs__no-options">
-          <slot name="no-options" v-bind="scope.noOptions">Sorry, no matching options.</slot>
-        </li>
-        <slot name="list-footer" v-bind="scope.listFooter" />
-      </ul>
-      <ul v-else :id="`vs${uid}__listbox`" role="listbox" style="display: none; visibility: hidden;"></ul>
+        </div>
+      </template>
+      <template v-else>
+        <ul ref="dropdownMenu" v-if="dropdownOpen" :id="`vs${uid}__listbox`" :key="`vs${uid}__listbox`" class="vs__dropdown-menu" role="listbox" @mousedown.prevent="onMousedown" @mouseup="onMouseUp" :style="{zIndex}" v-append-to-body>
+          <slot name="list-header" v-bind="scope.listHeader" />
+          <li
+            role="option"
+            v-for="(option, index) in filteredOptions"
+            :key="getOptionKey(option)"
+            :id="`vs${uid}__option-${index}`"
+            class="vs__dropdown-option"
+            :class="{ 'vs__dropdown-option--selected': isOptionSelected(option), 'vs__dropdown-option--highlight': index === typeAheadPointer, 'vs__dropdown-option--disabled': !selectable(option) }"
+            :aria-selected="index === typeAheadPointer ? true : null"
+            @mouseover="selectable(option) ? typeAheadPointer = index : null"
+            @mousedown.prevent.stop="selectable(option) ? select(option) : null"
+          >
+            <slot name="option" v-bind="normalizeOptionForSlot(option)">
+              {{ getOptionLabel(option) }}
+            </slot>
+          </li>
+          <li v-if="filteredOptions.length === 0" class="vs__no-options">
+            <slot name="no-options" v-bind="scope.noOptions">Sorry, no matching options.</slot>
+          </li>
+          <slot name="list-footer" v-bind="scope.listFooter" />
+        </ul>
+        <ul v-else :id="`vs${uid}__listbox`" role="listbox" style="display: none; visibility: hidden;"></ul>
+      </template>
     </transition>
     <slot name="footer" v-bind="scope.footer" />
   </div>
@@ -540,6 +551,37 @@
       },
 
       /**
+       * Append the dropdown element to the end of the body
+       * and size/position it dynamically. Use it if you have
+       * overflow or z-index issues.
+       * @type {Boolean}
+       */
+      appendToBody: {
+        type: Boolean,
+        default: false
+      },
+
+      /**
+       * Used to set class property of dropdown list element
+       * when using scoped slot
+       * @type {String}
+       */
+      dropdownClass: {
+        type: String,
+        default: 'vs__dropdown-menu',
+      },
+
+      /**
+       * When `appendToBody` is true, this function is responsible for
+       * getting the element for appending dropdown list to.
+       * @type {Function}
+       */
+      appendEl: {
+        type: Function,
+        default: () => document.body,
+      },
+
+      /**
        * When `appendToBody` is true, this function is responsible for
        * positioning the drop down list.
        *
@@ -565,7 +607,17 @@
           dropdownList.style.left = left;
           dropdownList.style.width = width;
         }
-      }
+      },
+
+      /**
+       * Used to set zIndex style property of dropdown list element
+       * when using scoped slot
+       * @type {Number}
+       */
+      zIndex: {
+        type: Number,
+        default: 1000,
+      },
     },
 
     data() {
@@ -970,6 +1022,44 @@
         if (typeof handlers[e.keyCode] === 'function') {
           return handlers[e.keyCode](e);
         }
+      },
+
+      /**
+       * Generate context for dropdown menu named
+       * scoped slot
+       * @return {Object}
+       */
+      generateContextForDropdownMenuSlot() {
+        const {
+          uid,
+          dropdownOpen,
+          onMousedown,
+          onMouseUp,
+          filteredOptions,
+          getOptionKey,
+          isOptionSelected,
+          typeAheadPointer,
+          selectable,
+          select,
+          normalizeOptionForSlot,
+        } = this;
+        return {
+          context: {
+            uid,
+            dropdownOpen,
+            filteredOptions,
+            typeAheadPointer,
+          },
+          api: {
+            onMousedown,
+            onMouseUp,
+            getOptionKey,
+            isOptionSelected,
+            selectable,
+            select,
+            normalizeOptionForSlot,
+          },
+        };
       }
     },
 
