@@ -1041,6 +1041,7 @@
           typeAheadPointer,
           selectable,
           select,
+          deselect,
           normalizeOptionForSlot,
         } = this;
         return {
@@ -1057,6 +1058,7 @@
             isOptionSelected,
             selectable,
             select,
+            deselect,
             normalizeOptionForSlot,
           },
         };
